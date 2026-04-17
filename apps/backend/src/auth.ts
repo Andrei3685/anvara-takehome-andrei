@@ -16,7 +16,7 @@ export interface AuthRequest extends Request {
  * Extracts the session token from cookies, validates it against the database,
  * looks up the user's role (sponsor or publisher), and attaches user info to the request.
  */
-export async function authMiddleware(
+export async function requireAuth(
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -25,8 +25,7 @@ export async function authMiddleware(
     // Extract session token from cookie header
     const cookieHeader = req.headers.cookie || '';
     const cookies = Object.fromEntries(
-      cookieHeader.split(';').map((c) => {
-        const [key, ...rest] = c.trim().split('=');
+      cookieHeader.split(';').map((c) => {        const [key, ...rest] = c.trim().split('=');
         return [key, rest.join('=')];
       })
     );
@@ -53,7 +52,6 @@ export async function authMiddleware(
     }
 
     const userId = session[0].userId;
-
     // Look up user from Better Auth "user" table
     const users = await prisma.$queryRaw<Array<{ id: string; email: string; name: string }>>`
       SELECT id, email, name FROM "user" WHERE id = ${userId} LIMIT 1
@@ -81,7 +79,6 @@ export async function authMiddleware(
       res.status(401).json({ error: 'User has no assigned role' });
       return;
     }
-
     req.user = {
       id: userId,
       email: user.email,

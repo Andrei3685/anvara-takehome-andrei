@@ -8,6 +8,7 @@ import type { Campaign } from '@/lib/types';
 
 interface CampaignCardProps {
   campaign: Campaign;
+  onOptimisticDelete?: (id: string) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -25,8 +26,7 @@ const statusIcons: Record<string, string> = {
 };
 
 function DeleteButton() {
-  const { pending } = useFormStatus();
-  return (
+  const { pending } = useFormStatus();  return (
     <button
       type="submit"
       disabled={pending}
@@ -39,7 +39,7 @@ function DeleteButton() {
 
 const initialState: ActionState = {};
 
-export function CampaignCard({ campaign }: CampaignCardProps) {
+export function CampaignCard({ campaign, onOptimisticDelete }: CampaignCardProps) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteState, deleteAction] = useActionState(deleteCampaign, initialState);
@@ -55,7 +55,6 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
 
   const progress =
     campaign.budget > 0 ? (Number(campaign.spent) / Number(campaign.budget)) * 100 : 0;
-
   return (
     <div className="group rounded-xl border border-[--color-border] p-5 transition-all hover:border-[--color-primary]/20 hover:shadow-md">
       <div className="mb-3 flex items-start justify-between">
@@ -83,8 +82,7 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
           <div
             className="h-2 rounded-full bg-gradient-to-r from-[--color-primary] to-[--color-primary-light] transition-all duration-500"
             style={{ width: `${Math.min(progress, 100)}%` }}
-          />
-        </div>
+          />        </div>
       </div>
 
       <div className="text-xs text-[--color-muted]">
@@ -102,14 +100,18 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
 
         {confirmDelete ? (
           <div className="flex items-center gap-2">
-            <form action={deleteAction}>
+            <form
+              action={(formData) => {
+                onOptimisticDelete?.(campaign.id);
+                deleteAction(formData);
+              }}
+            >
               <input type="hidden" name="id" value={campaign.id} />
               <DeleteButton />
             </form>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="text-sm text-[--color-muted] hover:underline"
-            >
+              className="text-sm text-[--color-muted] hover:underline"            >
               Cancel
             </button>
             {deleteState.error && <span className="text-sm text-red-600">{deleteState.error}</span>}

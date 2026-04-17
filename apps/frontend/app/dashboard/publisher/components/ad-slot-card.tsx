@@ -8,6 +8,7 @@ import type { AdSlot } from '@/lib/types';
 
 interface AdSlotCardProps {
   adSlot: AdSlot;
+  onOptimisticDelete?: (id: string) => void;
 }
 
 const typeColors: Record<string, string> = {
@@ -26,8 +27,7 @@ const typeIcons: Record<string, string> = {
   PODCAST: '🎙️',
 };
 
-function DeleteButton() {
-  const { pending } = useFormStatus();
+function DeleteButton() {  const { pending } = useFormStatus();
   return (
     <button
       type="submit"
@@ -41,7 +41,7 @@ function DeleteButton() {
 
 const initialState: ActionState = {};
 
-export function AdSlotCard({ adSlot }: AdSlotCardProps) {
+export function AdSlotCard({ adSlot, onOptimisticDelete }: AdSlotCardProps) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteState, deleteAction] = useActionState(deleteAdSlot, initialState);
@@ -56,8 +56,7 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
 
   return (
     <div className="group rounded-xl border border-[--color-border] p-5 transition-all hover:border-[--color-primary]/20 hover:shadow-md">
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mb-3 flex items-start justify-between">        <div className="flex items-center gap-2">
           <span>{typeIcons[adSlot.type] || '📦'}</span>
           <h3 className="font-semibold">{adSlot.name}</h3>
         </div>
@@ -85,8 +84,7 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
           <span className="text-lg font-bold text-[--color-primary]">
             ${Number(adSlot.basePrice).toLocaleString()}
           </span>
-          <span className="text-xs text-[--color-muted]">/mo</span>
-        </div>
+          <span className="text-xs text-[--color-muted]">/mo</span>        </div>
       </div>
 
       <div className="mt-4 flex items-center gap-3 border-t border-[--color-border] pt-3">
@@ -99,7 +97,12 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
 
         {confirmDelete ? (
           <div className="flex items-center gap-2">
-            <form action={deleteAction}>
+            <form
+              action={(formData) => {
+                onOptimisticDelete?.(adSlot.id);
+                deleteAction(formData);
+              }}
+            >
               <input type="hidden" name="id" value={adSlot.id} />
               <DeleteButton />
             </form>
@@ -109,8 +112,7 @@ export function AdSlotCard({ adSlot }: AdSlotCardProps) {
             >
               Cancel
             </button>
-            {deleteState.error && <span className="text-sm text-red-600">{deleteState.error}</span>}
-          </div>
+            {deleteState.error && <span className="text-sm text-red-600">{deleteState.error}</span>}          </div>
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}

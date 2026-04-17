@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type IRouter } from 'express';
 import { prisma } from '../db.js';
 import { getParam } from '../utils/helpers.js';
-import { authMiddleware, type AuthRequest } from '../auth.js';
+import { requireAuth, type AuthRequest } from '../auth.js';
 
 const router: IRouter = Router();
 
@@ -26,8 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
     });
 
     res.json(adSlots);
-  } catch (error) {
-    console.error('Error fetching ad slots:', error);
+  } catch (error) {    console.error('Error fetching ad slots:', error);
     res.status(500).json({ error: 'Failed to fetch ad slots' });
   }
 });
@@ -56,8 +55,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     });
 
     if (!adSlot) {
-      res.status(404).json({ error: 'Ad slot not found' });
-      return;
+      res.status(404).json({ error: 'Ad slot not found' });      return;
     }
 
     res.json(adSlot);
@@ -68,7 +66,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/ad-slots - Create new ad slot (authenticated publishers only)
-router.post('/', authMiddleware as never, async (req: AuthRequest, res: Response) => {
+router.post('/', requireAuth as never, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user?.publisherId) {
       res.status(403).json({ error: 'Only publishers can create ad slots' });
@@ -86,8 +84,7 @@ router.post('/', authMiddleware as never, async (req: AuthRequest, res: Response
 
     const validTypes = ['DISPLAY', 'VIDEO', 'NATIVE', 'NEWSLETTER', 'PODCAST'];
     if (!validTypes.includes(type)) {
-      res.status(400).json({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
-      return;
+      res.status(400).json({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` });      return;
     }
 
     if (Number(basePrice) <= 0) {
@@ -116,11 +113,10 @@ router.post('/', authMiddleware as never, async (req: AuthRequest, res: Response
   } catch (error) {
     console.error('Error creating ad slot:', error);
     res.status(500).json({ error: 'Failed to create ad slot' });
-  }
-});
+  }});
 
 // PUT /api/ad-slots/:id - Update ad slot with ownership check
-router.put('/:id', authMiddleware as never, async (req: AuthRequest, res: Response) => {
+router.put('/:id', requireAuth as never, async (req: AuthRequest, res: Response) => {
   try {
     const id = getParam(req.params.id);
 
@@ -146,8 +142,7 @@ router.put('/:id', authMiddleware as never, async (req: AuthRequest, res: Respon
     }
 
     if (basePrice !== undefined && Number(basePrice) <= 0) {
-      res.status(400).json({ error: 'basePrice must be a positive number' });
-      return;
+      res.status(400).json({ error: 'basePrice must be a positive number' });      return;
     }
 
     const adSlot = await prisma.adSlot.update({
@@ -176,8 +171,7 @@ router.put('/:id', authMiddleware as never, async (req: AuthRequest, res: Respon
 });
 
 // DELETE /api/ad-slots/:id - Delete ad slot with ownership check
-router.delete('/:id', authMiddleware as never, async (req: AuthRequest, res: Response) => {
-  try {
+router.delete('/:id', requireAuth as never, async (req: AuthRequest, res: Response) => {  try {
     const id = getParam(req.params.id);
 
     // Check ownership
@@ -206,8 +200,7 @@ router.post('/:id/book', async (req: Request, res: Response) => {
     const { sponsorId, message } = req.body;
 
     if (!sponsorId) {
-      res.status(400).json({ error: 'sponsorId is required' });
-      return;
+      res.status(400).json({ error: 'sponsorId is required' });      return;
     }
 
     const adSlot = await prisma.adSlot.findUnique({
@@ -236,8 +229,7 @@ router.post('/:id/book', async (req: Request, res: Response) => {
     console.log(`Ad slot ${id} booked by sponsor ${sponsorId}. Message: ${message || 'None'}`);
 
     res.json({
-      success: true,
-      message: 'Ad slot booked successfully!',
+      success: true,      message: 'Ad slot booked successfully!',
       adSlot: updatedSlot,
     });
   } catch (error) {
@@ -266,8 +258,7 @@ router.post('/:id/unbook', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error unbooking ad slot:', error);
-    res.status(500).json({ error: 'Failed to unbook ad slot' });
-  }
+    res.status(500).json({ error: 'Failed to unbook ad slot' });  }
 });
 
 export default router;

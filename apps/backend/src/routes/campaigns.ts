@@ -1,27 +1,31 @@
 import { Router, type Response, type IRouter } from 'express';
 import { prisma } from '../db.js';
 import { getParam } from '../utils/helpers.js';
-import { authMiddleware, type AuthRequest } from '../auth.js';
+import { requireAuth, type AuthRequest } from '../auth.js';
 
 const router: IRouter = Router();
 
 // All campaign routes require authentication
-router.use(authMiddleware as never);
+router.use(requireAuth as never);
 
 // GET /api/campaigns - List campaigns scoped to authenticated sponsor
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user?.sponsorId) {
+      res.status(403).json({ error: 'Only sponsors can view campaigns' });
+      return;
+    }
+
     const { status } = req.query;
 
-    // Sponsors only see their own campaigns
+    // Always scope to the authenticated user's sponsorId — never trust client input
     const campaigns = await prisma.campaign.findMany({
       where: {
+        sponsorId: req.user.sponsorId,
         ...(status && {
           status: status as 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'DRAFT',
         }),
-        ...(req.user?.sponsorId && { sponsorId: req.user.sponsorId }),
-      },
-      include: {
+      },      include: {
         sponsor: { select: { id: true, name: true, logo: true } },
         _count: { select: { creatives: true, placements: true } },
       },
@@ -50,8 +54,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         placements: {
           include: {
             adSlot: true,
-            publisher: { select: { id: true, name: true, category: true } },
-          },
+            publisher: { select: { id: true, name: true, category: true } },          },
         },
       },
     });
@@ -80,8 +83,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       name,
       description,
       budget,
-      cpmRate,
-      cpcRate,
+      cpmRate,      cpcRate,
       startDate,
       endDate,
       targetCategories,
@@ -109,8 +111,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         cpcRate,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        targetCategories: targetCategories || [],
-        targetRegions: targetRegions || [],
+        targetCategories: targetCategories || [],        targetRegions: targetRegions || [],
         sponsorId: req.user.sponsorId,
       },
       include: {
@@ -139,7 +140,6 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       res.status(404).json({ error: 'Campaign not found' });
       return;
     }
-
     const {
       name,
       description,
@@ -167,8 +167,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
         ...(cpmRate !== undefined && { cpmRate }),
         ...(cpcRate !== undefined && { cpcRate }),
         ...(startDate !== undefined && { startDate: new Date(startDate) }),
-        ...(endDate !== undefined && { endDate: new Date(endDate) }),
-        ...(status !== undefined && { status }),
+        ...(endDate !== undefined && { endDate: new Date(endDate) }),        ...(status !== undefined && { status }),
         ...(targetCategories !== undefined && { targetCategories }),
         ...(targetRegions !== undefined && { targetRegions }),
       },
@@ -198,7 +197,6 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
       res.status(404).json({ error: 'Campaign not found' });
       return;
     }
-
     await prisma.campaign.delete({ where: { id } });
 
     res.status(204).send();

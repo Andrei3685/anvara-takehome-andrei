@@ -2,36 +2,32 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { authClient } from '@/auth-client';
 
 type UserRole = 'sponsor' | 'publisher' | null;
+
+async function fetchUserRole(userId: string): Promise<UserRole> {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/auth/role/${userId}`
+  );
+  const data = await res.json();
+  return data.role;
+}
 
 export function NavClient() {
   const pathname = usePathname();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
-  const [role, setRole] = useState<UserRole>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Fetch user role from backend when user is logged in
-  useEffect(() => {
-    if (user?.id) {
-      fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/auth/role/${user.id}`
-      )
-        .then((res) => res.json())
-        .then((data: { role: UserRole }) => setRole(data.role))
-        .catch(() => {
-          // Role fetch failed — reset on next render
-        });
-    }
-  }, [user?.id]);
-
-  // Reset role when user logs out
-  if (!user?.id && role !== null) {
-    setRole(null);
-  }
+  // Fetch user role via React Query instead of useEffect
+  const { data: role = null } = useQuery<UserRole>({
+    queryKey: ['userRole', user?.id],
+    queryFn: () => fetchUserRole(user!.id),
+    enabled: !!user?.id,
+  });
 
   // Close mobile menu on navigation
   const [prevPathname, setPrevPathname] = useState(pathname);

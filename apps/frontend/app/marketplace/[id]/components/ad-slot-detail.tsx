@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { getAdSlot } from '@/lib/api';
 import { authClient } from '@/auth-client';
@@ -57,53 +58,54 @@ interface Props {
   id: string;
 }
 
+async function fetchRoleInfo(userId: string): Promise<RoleInfo | null> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/auth/role/${userId}`
+    );
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export function AdSlotDetail({ id }: Props) {
-  const [adSlot, setAdSlot] = useState<AdSlot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [roleInfo, setRoleInfo] = useState<RoleInfo | null>(null);
-  const [roleLoading, setRoleLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [booking, setBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [localAdSlot, setLocalAdSlot] = useState<AdSlot | null>(null);
 
   // A/B test for CTA button text
   const ctaVariant = useABTest(experiments.ctaButtonText);
 
-  useEffect(() => {
-    // Fetch ad slot
-    getAdSlot(id)
-      .then((slot) => {
-        setAdSlot(slot);
-        analytics.viewListing(slot.id, slot.name, Number(slot.basePrice));
-      })
-      .catch(() => setError('Failed to load ad slot details'))
-      .finally(() => setLoading(false));
+  // Fetch ad slot via React Query
+  const {
+    data: fetchedAdSlot,
+    isLoading: loading,
+    error,
+  } = useQuery<AdSlot>({
+    queryKey: ['adSlot', id],
+    queryFn: async () => {
+      const slot = await getAdSlot(id);
+      analytics.viewListing(slot.id, slot.name, Number(slot.basePrice));
+      return slot as unknown as AdSlot;
+    },
+  });
 
-    // Check user session and fetch role
-    authClient
-      .getSession()
-      .then(({ data }) => {
-        if (data?.user) {
-          const sessionUser = data.user as User;
-          setUser(sessionUser);
+  const adSlot = localAdSlot ?? fetchedAdSlot ?? null;
 
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/auth/role/${sessionUser.id}`
-          )
-            .then((res) => res.json())
-            .then((data) => setRoleInfo(data))
-            .catch(() => setRoleInfo(null))
-            .finally(() => setRoleLoading(false));
-        } else {
-          setRoleLoading(false);
-        }
-      })
-      .catch(() => setRoleLoading(false));
-  }, [id]);
+  // Fetch user session
+  const { data: session } = authClient.useSession();
+  const user = (session?.user as User) ?? null;
+
+  // Fetch role info via React Query
+  const { data: roleInfo = null, isLoading: roleLoading } = useQuery<RoleInfo | null>({
+    queryKey: ['roleInfo', user?.id],
+    queryFn: () => fetchRoleInfo(user!.id),
+    enabled: !!user?.id,
+  });
 
   const handleBooking = async () => {
     if (!roleInfo?.sponsorId || !adSlot) return;
@@ -131,7 +133,7 @@ export function AdSlotDetail({ id }: Props) {
       }
 
       setBookingSuccess(true);
-      setAdSlot({ ...adSlot, isAvailable: false });
+      setLocalAdSlot({ ...adSlot, isAvailable: false });
       analytics.completeBooking(adSlot.id, Number(adSlot.basePrice));
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Failed to book placement');
@@ -157,7 +159,7 @@ export function AdSlotDetail({ id }: Props) {
       }
 
       setBookingSuccess(false);
-      setAdSlot({ ...adSlot, isAvailable: true });
+      setLocalAdSlot({ ...adSlot, isAvailable: true });
       setMessage('');
     } catch {
       // Silently fail — user can retry
@@ -177,7 +179,7 @@ export function AdSlotDetail({ id }: Props) {
         <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-950/20">
           <div className="mb-2 text-3xl">😕</div>
           <p className="mb-3 font-medium text-red-600 dark:text-red-400">
-            {error || 'Ad slot not found'}
+            {error ? 'Failed to load ad slot details' : 'Ad slot not found'}
           </p>
           <Link
             href="/marketplace"

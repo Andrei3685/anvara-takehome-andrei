@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { AdSlotForm } from './ad-slot-form';
 
-export function CreateAdSlotToggle() {
+interface CreateAdSlotToggleProps {
+  onOptimisticCreate?: (formData: FormData) => void;
+}
+
+export function CreateAdSlotToggle({ onOptimisticCreate }: CreateAdSlotToggleProps) {
   const [showCreate, setShowCreate] = useState(false);
 
   return (
@@ -16,7 +20,12 @@ export function CreateAdSlotToggle() {
           {showCreate ? 'Cancel' : '+ Create Ad Slot'}
         </button>
       </div>
-      {showCreate && <AdSlotForm onClose={() => setShowCreate(false)} />}
+      {showCreate && (
+        <AdSlotForm
+          onClose={() => setShowCreate(false)}
+          onOptimisticCreate={onOptimisticCreate}
+        />
+      )}
     </div>
   );
 }

@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { CampaignForm } from './campaign-form';
 
-export function CreateCampaignToggle() {
+interface CreateCampaignToggleProps {
+  onOptimisticCreate?: (formData: FormData) => void;
+}
+
+export function CreateCampaignToggle({ onOptimisticCreate }: CreateCampaignToggleProps) {
   const [showCreate, setShowCreate] = useState(false);
 
   return (
@@ -16,7 +20,12 @@ export function CreateCampaignToggle() {
           {showCreate ? 'Cancel' : '+ Create Campaign'}
         </button>
       </div>
-      {showCreate && <CampaignForm onClose={() => setShowCreate(false)} />}
+      {showCreate && (
+        <CampaignForm
+          onClose={() => setShowCreate(false)}
+          onOptimisticCreate={onOptimisticCreate}
+        />
+      )}
     </div>
   );
 }

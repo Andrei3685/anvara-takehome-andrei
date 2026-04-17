@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { getAdSlots } from '@/lib/api';
 import { analytics } from '@/lib/analytics';
@@ -27,20 +28,24 @@ const typeIcons: Record<string, string> = {
 const ITEMS_PER_PAGE = 9;
 
 export function AdSlotGrid() {
-  const [adSlots, setAdSlots] = useState<AdSlot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: adSlots = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<AdSlot[]>({
+    queryKey: ['marketplace', 'adSlots'],
+    queryFn: () => getAdSlots(),
+  });
+
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [availableOnly, setAvailableOnly] = useState(false);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
+  // Track marketplace view on mount
+  useMemo(() => {
     analytics.viewMarketplace();
-    getAdSlots()
-      .then(setAdSlots)
-      .catch(() => setError('Failed to load ad slots'))
-      .finally(() => setLoading(false));
   }, []);
 
   // Filter and search
@@ -74,7 +79,7 @@ export function AdSlotGrid() {
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginatedSlots = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  if (loading) {
+  if (isLoading) {
     return <SkeletonGrid count={6} />;
   }
 
@@ -82,16 +87,9 @@ export function AdSlotGrid() {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-950/20">
         <div className="mb-2 text-3xl">⚠️</div>
-        <p className="mb-3 font-medium text-red-600 dark:text-red-400">{error}</p>
+        <p className="mb-3 font-medium text-red-600 dark:text-red-400">Failed to load ad slots</p>
         <button
-          onClick={() => {
-            setError(null);
-            setLoading(true);
-            getAdSlots()
-              .then(setAdSlots)
-              .catch(() => setError('Failed to load ad slots'))
-              .finally(() => setLoading(false));
-          }}
+          onClick={() => refetch()}
           className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
         >
           Try Again

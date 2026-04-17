@@ -5,6 +5,7 @@ import { Nav } from './components/nav';
 import { GA4 } from './components/ga4';
 import { ToastProvider } from './components/toast';
 import { ErrorBoundaryWrapper } from './components/error-boundary';
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://anvara.com'),
@@ -75,12 +76,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense>
           <GA4 />
         </Suspense>
-        <ToastProvider>
-          <ErrorBoundaryWrapper>
-            <Nav />
-            <main className="mx-auto max-w-6xl p-4 sm:p-6">{children}</main>
-          </ErrorBoundaryWrapper>
-        </ToastProvider>
+        <Providers>
+          <ToastProvider>
+            <ErrorBoundaryWrapper>
+              <Nav />
+              <main className="mx-auto max-w-6xl p-4 sm:p-6">{children}</main>
+            </ErrorBoundaryWrapper>
+          </ToastProvider>
+        </Providers>
       </body>
     </html>
   );

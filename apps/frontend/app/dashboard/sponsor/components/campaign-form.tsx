@@ -21,13 +21,21 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
 interface CampaignFormProps {
   campaign?: Campaign;
   onClose: () => void;
+  onOptimisticCreate?: (formData: FormData) => void;
 }
 
 const initialState: ActionState = {};
 
-export function CampaignForm({ campaign, onClose }: CampaignFormProps) {
+export function CampaignForm({ campaign, onClose, onOptimisticCreate }: CampaignFormProps) {
   const action = campaign ? updateCampaign : createCampaign;
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, baseFormAction] = useActionState(action, initialState);
+
+  const formAction = (formData: FormData) => {
+    if (!campaign && onOptimisticCreate) {
+      onOptimisticCreate(formData);
+    }
+    baseFormAction(formData);
+  };
 
   if (state.success) {
     onClose();

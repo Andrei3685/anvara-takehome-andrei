@@ -1,5 +1,6 @@
 import express, { type Application } from 'express';
 import cors from 'cors';
+import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import routes from './routes/index.js';
 
@@ -30,15 +31,8 @@ app.use(limiter);
 
 app.use(express.json());
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`);
-  });
-  next();
-});
+// Request logging
+app.use(morgan('dev'));
 
 // Mount all API routes
 app.use('/api', routes);

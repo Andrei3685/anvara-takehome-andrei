@@ -3,31 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { authClient } from '@/auth-client';
 
-type UserRole = 'sponsor' | 'publisher' | null;
-
-async function fetchUserRole(userId: string): Promise<UserRole> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4291'}/api/auth/role/${userId}`
-  );
-  const data = await res.json();
-  return data.role;
+interface NavClientProps {
+  user: { id: string; name: string; email: string } | null;
+  role: 'sponsor' | 'publisher' | null;
 }
 
-export function NavClient() {
+export function NavClient({ user, role }: NavClientProps) {
   const pathname = usePathname();
-  const { data: session, isPending } = authClient.useSession();
-  const user = session?.user;
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Fetch user role via React Query instead of useEffect
-  const { data: role = null } = useQuery<UserRole>({
-    queryKey: ['userRole', user?.id],
-    queryFn: () => fetchUserRole(user!.id),
-    enabled: !!user?.id,
-  });
 
   // Close mobile menu on navigation
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -66,9 +51,7 @@ export function NavClient() {
           </Link>
         )}
 
-        {isPending ? (
-          <span className="text-[--color-muted]">...</span>
-        ) : user ? (
+        {user ? (
           <div className="flex items-center gap-4">
             <span className="text-sm text-[--color-muted]">
               {user.name} {role && `(${role})`}
@@ -153,7 +136,7 @@ export function NavClient() {
               </Link>
             )}
 
-            {isPending ? null : user ? (
+            {user ? (
               <div className="border-t border-[--color-border] pt-3">
                 <span className="mb-2 block px-3 text-sm text-[--color-muted]">
                   {user.name} {role && `(${role})`}

@@ -184,6 +184,7 @@ See the [setup guide](docs/setup.md) for configuration details.
 | Document                                         | Description                     |
 | ------------------------------------------------ | ------------------------------- |
 | [Setup Guide](docs/setup.md)                     | Installation and configuration  |
+| [Deployment Guide](docs/deployment.md)           | Vercel deployment instructions  |
 | [Challenges Overview](docs/challenges/README.md) | All challenges and requirements |
 | [Submission Guide](docs/submission.md)           | How to submit your work         |
 

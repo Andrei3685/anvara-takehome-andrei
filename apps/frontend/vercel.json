@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile --filter @anvara/frontend...",
+  "buildCommand": "cd ../.. && pnpm --filter @anvara/frontend build",
+  "outputDirectory": ".next",
+  "regions": ["iad1"]
+}

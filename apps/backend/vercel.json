@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile --filter @anvara/backend...",
+  "buildCommand": "cd ../.. && pnpm --filter @anvara/backend db:generate && pnpm --filter @anvara/backend build",
+  "regions": ["iad1"],
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node@5",
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+}
